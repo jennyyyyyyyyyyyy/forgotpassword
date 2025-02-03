@@ -40,7 +40,8 @@ app.post('/verify-google-token', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Error verifying ID token: ', error);
+        // Enhanced error logging
+        console.error('Error verifying ID token:', error.stack);
         res.status(401).json({ message: 'Invalid ID token' });
     }
 });
