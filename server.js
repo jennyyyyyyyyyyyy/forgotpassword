@@ -4,7 +4,7 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 // Create an OAuth2 client instance
-const CLIENT_ID = '242448462491-qpoa7slhdpr15t6ooikmbu2o4ddh1vts.apps.googleusercontent.com'; // Use your Web Client ID from Google Console
+const CLIENT_ID = '242448462491-cvrlfa9rv9ncnm7cmps7367tsku5p61n.apps.googleusercontent.com'; // Use your Web Client ID from Google Console
 const client = new OAuth2Client(CLIENT_ID);
 
 // Middleware to parse JSON bodies
