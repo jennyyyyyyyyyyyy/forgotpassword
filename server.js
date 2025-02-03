@@ -1,80 +1,51 @@
-require("dotenv").config();
-const express = require("express");
-const nodemailer = require("nodemailer");
-const jwt = require("jsonwebtoken");
-const bcrypt = require("bcryptjs");
-const cors = require("cors");
-
+const express = require('express');
+const { OAuth2Client } = require('google-auth-library');
 const app = express();
+const port = process.env.PORT || 3000;
+
+// Create an OAuth2 client instance
+const CLIENT_ID = '242448462491-qpoa7slhdpr15t6ooikmbu2o4ddh1vts.apps.googleusercontent.com'; // Use your Web Client ID from Google Console
+const client = new OAuth2Client(CLIENT_ID);
+
+// Middleware to parse JSON bodies
 app.use(express.json());
-app.use(cors());
 
-// Mock user database (replace with real database for production)
-const users = {
-    "filconnected.thesis2024@gmail.com": bcrypt.hashSync("filconnected", 10), // storing a hashed password for demonstration
-};
+// API to verify Google ID Token
+app.post('/verify-google-token', async (req, res) => {
+    const { idToken } = req.body;  // Expecting the idToken from the Android app
 
-// Forgot Password Route
-app.post("/api/forgot-password", async (req, res) => {
-    const { email } = req.body;
-
-    // Check if user exists
-    if (!users[email]) {
-        return res.status(400).json({ message: "User not found" });
+    if (!idToken) {
+        return res.status(400).json({ message: 'ID token is required' });
     }
 
-    // Create a JWT token with a 15-minute expiration time
-    const token = jwt.sign({ email }, process.env.JWT_SECRET, { expiresIn: "15m" });
-
-    // Create reset link
-    const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
-
-    // Set up the transporter for sending email
-    const transporter = nodemailer.createTransport({
-        service: "gmail",
-        auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS,
-        },
-    });
-
-    const mailOptions = {
-        from: process.env.EMAIL_USER,
-        to: email,
-        subject: "Reset Your Password",
-        text: `Click the link to reset your password: ${resetLink}`,
-    };
-
     try {
-        await transporter.sendMail(mailOptions);
-        res.json({ message: "Password reset email sent!" });
+        // Verify the ID token using Google's OAuth2Client
+        const ticket = await client.verifyIdToken({
+            idToken,
+            audience: CLIENT_ID,  // Ensure that the client ID is used to verify the token
+        });
+
+        const payload = ticket.getPayload();
+        // Payload contains information about the user (e.g., email, name)
+        console.log('Verified user: ', payload);
+
+        // Send back the user's information or a success message
+        res.status(200).json({
+            message: 'Token verified successfully',
+            user: {
+                name: payload.name,
+                email: payload.email,
+                picture: payload.picture,
+            }
+        });
+
     } catch (error) {
-        res.status(500).json({ message: "Error sending email" });
+        console.error('Error verifying ID token: ', error);
+        res.status(401).json({ message: 'Invalid ID token' });
     }
 });
 
-// Reset Password Route
-app.post("/api/reset-password", async (req, res) => {
-    const { token, newPassword } = req.body;
-
-    try {
-        // Verify the JWT token
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        const email = decoded.email;
-
-        // Check if the user exists
-        if (!users[email]) {
-            return res.status(400).json({ message: "User not found" });
-        }
-
-        // Hash the new password and save it
-        const hashedPassword = await bcrypt.hash(newPassword, 10);
-        users[email] = hashedPassword; // Save the new password
-
-        res.json({ message: "Password reset successful!" });
-    } catch (error) {
-        res.status(400).json({ message: "Invalid or expired token" });
-    }
+// Start the server
+app.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
 });
-
-app.listen(3000, () => console.log("Server running on port 3000"));
