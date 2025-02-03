@@ -1,52 +1,32 @@
-const express = require('express');
 const { OAuth2Client } = require('google-auth-library');
+const express = require('express');
 const app = express();
-const port = process.env.PORT || 3000;
-
-// Create an OAuth2 client instance
-const CLIENT_ID = '242448462491-cvrlfa9rv9ncnm7cmps7367tsku5p61n.apps.googleusercontent.com'; // Use your Web Client ID from Google Console
-const client = new OAuth2Client(CLIENT_ID);
-
-// Middleware to parse JSON bodies
 app.use(express.json());
 
-// API to verify Google ID Token
+const CLIENT_ID = '242448462491-cvrlfa9rv9ncnm7cmps7367tsku5p61n.apps.googleusercontent.com'; // Replace with your actual client ID
+const client = new OAuth2Client(CLIENT_ID);
+
 app.post('/verify-google-token', async (req, res) => {
-    const { idToken } = req.body;  // Expecting the idToken from the Android app
-
-    if (!idToken) {
-        return res.status(400).json({ message: 'ID token is required' });
-    }
-
+    const { idToken } = req.body;
+    
     try {
-        // Verify the ID token using Google's OAuth2Client
         const ticket = await client.verifyIdToken({
-            idToken,
-            audience: CLIENT_ID,  // Ensure that the client ID is used to verify the token
+            idToken: idToken,
+            audience: CLIENT_ID, // Ensure it matches your app's client ID
         });
 
         const payload = ticket.getPayload();
-        // Payload contains information about the user (e.g., email, name)
-        console.log('Verified user: ', payload);
+        console.log("Verified User:", payload);
 
-        // Send back the user's information or a success message
-        res.status(200).json({
-            message: 'Token verified successfully',
-            user: {
-                name: payload.name,
-                email: payload.email,
-                picture: payload.picture,
-            }
-        });
+        if (payload.email !== 'filconnected.pdm.2024@gmail.com') {
+            return res.status(403).json({ error: 'Unauthorized email' });
+        }
 
+        res.json({ success: true, user: payload });
     } catch (error) {
-        // Enhanced error logging
-        console.error('Error verifying ID token:', error.stack);
-        res.status(401).json({ message: 'Invalid ID token' });
+        console.error("Token verification error:", error.message);
+        res.status(401).json({ error: 'Invalid token' });
     }
 });
 
-// Start the server
-app.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
-});
+app.listen(3000, () => console.log('Server running on port 3000'));
