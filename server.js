@@ -1,14 +1,16 @@
 const express = require('express');
 const { OAuth2Client } = require('google-auth-library');
+const cors = require('cors');  // CORS package for handling cross-origin requests
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Create an OAuth2 client instance
-const CLIENT_ID = '242448462491-qpoa7slhdpr15t6ooikmbu2o4ddh1vts.apps.googleusercontent.com'; // Use your Web Client ID from Google Console
+// Create an OAuth2 client instance using the Web Client ID
+const CLIENT_ID = '242448462491-qpoa7slhdpr15t6ooikmbu2o4ddh1vts.apps.googleusercontent.com';  // Replace with your Web Client ID from Google Console
 const client = new OAuth2Client(CLIENT_ID);
 
 // Middleware to parse JSON bodies
 app.use(express.json());
+app.use(cors());  // Allow all domains for testing; you can restrict it as needed
 
 // API to verify Google ID Token
 app.post('/verify-google-token', async (req, res) => {
